@@ -1,5 +1,4 @@
-#!/usr/bin/yarn dev
-import { createQueue } from 'kue';
+import kue from 'kue';
 
 const jobs = [
   {
@@ -48,23 +47,23 @@ const jobs = [
   },
 ];
 
-const queue = createQueue({ name: 'push_notification_code_2' });
+const queue = kue.createQueue();
+const queueName = 'push_notification_code_2';
 
-for (const jobInfo of jobs) {
-  const job = queue.create('push_notification_code_2', jobInfo);
+jobs.forEach((jobFormat) => {
+  const job = queue.create(queueName, jobFormat).save((err) => {
+    if (!err) console.log(`Notification job created: ${job.id}`);
+  });
 
-  job
-    .on('enqueue', () => {
-      console.log('Notification job created:', job.id);
-    })
-    .on('complete', () => {
-      console.log('Notification job', job.id, 'completed');
-    })
-    .on('failed', (err) => {
-      console.log('Notification job', job.id, 'failed:', err.message || err.toString());
-    })
-    .on('progress', (progress, _data) => {
-      console.log('Notification job', job.id, `${progress}% complete`);
-    });
-  job.save();
-}
+  job.on('complete', () => {
+    console.log(`Notification job ${job.id} completed`);
+  });
+
+  job.on('failed', (errorMessage) => {
+    console.log(`Notification job ${job.id} failed: ${errorMessage}`);
+  });
+
+  job.on('progress', (progress) => {
+    console.log(`Notification job ${job.id} ${progress}% complete`);
+  });
+});
